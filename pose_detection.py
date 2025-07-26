@@ -32,10 +32,9 @@ class pose_stream:
 
   def draw_landmark_live(self, result, output_image , timestamp_ms) -> None:
     landmark_list = result.pose_landmarks
-
+    self.image = np.copy(output_image.numpy_view())
     if result.pose_landmarks:
       try:
-        self.image = np.copy(output_image.numpy_view())
         for idx in range(len(landmark_list)):
           pose_landmarks = landmark_list[idx]
 
@@ -55,6 +54,7 @@ class pose_stream:
             )
       except Exception as e:
         print(e)
+        ("Frame failed to load")
   
 
 ps = pose_stream()
