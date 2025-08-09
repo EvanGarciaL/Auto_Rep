@@ -1,4 +1,4 @@
 mediapipe
 python-dotenv 
 numpy
-opencv
+opencv-python

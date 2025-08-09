@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 import mediapipe as mp
 
-class live_capture:
+class CameraCapture:
   def __init__(self,width: int = 1280, height: int = 720) -> None:
     self.cap = cv.VideoCapture(0)
     self.width = width
@@ -26,17 +26,6 @@ class live_capture:
 
       self.mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=np.asarray(frame))
       yield self.mp_image, self.cap.get(cv.CAP_PROP_POS_MSEC), frame
-      # cv.imshow('frame', frame)
-      # if cv.waitKey(1) == ord('q'):
-      #   break
 
     self.cap.release()
     cv.destroyAllWindows
-
-if __name__ == "__main__":
-  cam = live_capture()
-  for mp_image, mp_timestamp, mp_frame in cam.stream():
-    cv.imshow('frame', mp_frame)
-    print(mp_image,mp_timestamp)
-    if cv.waitKey(1) == ord('q'):
-      break

@@ -1,73 +1,64 @@
 import os
 import mediapipe as mp
-import cv2 as cv
-import numpy as np
 from dotenv import find_dotenv, load_dotenv
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 from mediapipe.python.solutions import drawing_utils, pose_connections
-from camera_capture import live_capture
+from collections import deque
 
-
+#Load model paths from .env
 load_dotenv(find_dotenv())
-model_path = os.getenv("PATH_TO_MODEL_LIGHT")
+model_path = os.getenv("PATH_TO_MODEL_FULL")
 
 
-# Constants for 
+# Configurations, Objects and Constants for dealing with MediaPipe Tasks
 BaseOptions = mp.tasks.BaseOptions
 PoseLandmarker = vision.PoseLandmarker
 PoseLandmarkerOptions = vision.PoseLandmarkerOptions
 PoseLandmarkerResult = vision.PoseLandmarkerResult
-PoseLandmarkerConnections = pose_connections.POSE_CONNECTIONS
+# Turn frozenset to list
+PoseLandmarkerConnections = list(pose_connections.POSE_CONNECTIONS) 
 VisionRunningMode = vision.RunningMode
 
-# 
-class pose_stream:
+
+class PoseLandmarkLiveRunner:
   def __init__(self) -> None:
     self.options = PoseLandmarkerOptions(
         base_options=BaseOptions(model_asset_path=model_path),
         running_mode=VisionRunningMode.LIVE_STREAM,
-        result_callback=self.draw_landmark_live)
-    self.image = None
+        result_callback=self._callback_function)
+    self.landmarks = None
+    self.results = deque(maxlen=1) 
+    # Deque with a maxlen of one, keeping only the most recent landmarks and removing the rest
+    # Deque is a list-like container similar to stacks and queues
+    # Can append and pop from either end (FIFO and LIFO)
+    # Maxlen sets a maximum length, automatically discarding items from the opposite end.
 
-  def draw_landmark_live(self, result, output_image , timestamp_ms) -> None:
-    landmark_list = result.pose_landmarks
-    self.image = np.copy(output_image.numpy_view())
-    if result.pose_landmarks:
-      try:
-        for idx in range(len(landmark_list)):
-          pose_landmarks = landmark_list[idx]
+  def _callback_function(self, result, output_image , timestamp_ms) -> None:
+    self.results.append((timestamp_ms, result.pose_landmarks))
 
-          pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList() # type: ignore
-          pose_landmarks_proto.landmark.extend([
-          landmark_pb2.NormalizedLandmark( # pyright: ignore[reportAttributeAccessIssue]
-            x=landmark.x,
-            y=landmark.y, 
-            z=landmark.z, 
-            visibility=landmark.visibility,
-            presence=landmark.presence) for landmark in pose_landmarks
-          ])
-          drawing_utils.draw_landmarks(
-            image= self.image,
-            landmark_list= pose_landmarks_proto,
-            connections= list(PoseLandmarkerConnections)
-            )
-      except Exception as e:
-        print(e)
-        ("Frame failed to load")
-  
 
-ps = pose_stream()
+  def draw_landmarks(self,frame,landmarks) -> None:
+      if self.results:
+        timestamp, pose_landmarks = self.results[-1]
+        try:
+          for landmarks in pose_landmarks:
 
-with PoseLandmarker.create_from_options(ps.options) as landmarker:
-  cam = live_capture()
-  for mp_image, mp_timestamp, mp_frame in cam.stream():
-    landmarker.detect_async(mp_image,int(mp_timestamp))
+            proto_list = landmark_pb2.NormalizedLandmarkList() #type:ignore 
 
-    d_image = mp_frame
-    if ps.image is not None:
-      d_image = ps.image
+            proto_list.landmark.extend([
+            landmark_pb2.NormalizedLandmark( #type:ignore
+              x=lm.x,
+              y=lm.y, 
+              z=lm.z, 
+              visibility=lm.visibility,
+              presence=lm.presence) for lm in landmarks 
+            ])
 
-    cv.imshow('frame', d_image)
-    if cv.waitKey(1) == ord('q'):
-      break
+            drawing_utils.draw_landmarks(
+              image=frame,
+              landmark_list= proto_list,
+              connections= PoseLandmarkerConnections
+              )
+        except Exception as e:
+          print(e, "\nFrame failed to load")
