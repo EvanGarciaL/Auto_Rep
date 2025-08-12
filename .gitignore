@@ -40,9 +40,6 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# MediaPipe Models
-*.task 
-
 # Junk/Tempfiles
 ex.*
 temp.*

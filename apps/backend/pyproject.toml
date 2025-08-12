@@ -1,0 +1,13 @@
+[project]
+name = "auto-rep-backend"
+version = "0.1.0"
+description = "Logic Backend"
+readme = "README.md"
+requires-python = ">=3.9,<3.11"
+dependencies = [
+    "fastapi>=0.116.1",
+    "mediapipe==0.10.21",
+    "numpy==1.26.4",
+    "opencv-python==4.11.0.86",
+    "uvicorn[standard]>=0.35.0",
+]

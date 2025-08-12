@@ -1,4 +1,0 @@
-mediapipe
-python-dotenv 
-numpy
-opencv-python
